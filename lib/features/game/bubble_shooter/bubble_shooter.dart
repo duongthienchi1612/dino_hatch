@@ -1,6 +1,10 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:dino_hatch/features/game/bloc/game_cubit.dart';
+import 'package:dino_hatch/features/game/bloc/game_state.dart';
 
 // CONFIG
 const int gridCols = 9;
@@ -32,6 +36,7 @@ class _BubbleShooterGameState extends State<BubbleShooterGame>
   Offset _shooterPosition = Offset.zero;
   Offset? _projectilePosition;
   Offset? _projectileVelocity;
+  Bubble? _projectileBubble;
   Bubble? _nextBubble;
   late Ticker _ticker;
 
@@ -45,6 +50,7 @@ class _BubbleShooterGameState extends State<BubbleShooterGame>
           gridRows, (int r) => List<Bubble?>.generate(gridCols, (int c) => null));
 
   double _aimAngle = -pi / 2; // up
+  double _shootEffectT = 0.0; // muzzle flash decay 1->0
 
   @override
   void initState() {
@@ -73,8 +79,10 @@ class _BubbleShooterGameState extends State<BubbleShooterGame>
   }
 
   void _spawnNewBubbles() {
-    activeBubble = Bubble(color: palette[_rand.nextInt(palette.length)]);
-    _nextBubble = Bubble(color: palette[_rand.nextInt(palette.length)]);
+    // Initial values will come from Bloc
+    final GameState gs = context.read<GameCubit>().state;
+    activeBubble = gs.active != null ? Bubble(color: gs.active!) : Bubble(color: palette[_rand.nextInt(palette.length)]);
+    _nextBubble = gs.next != null ? Bubble(color: gs.next!) : Bubble(color: palette[_rand.nextInt(palette.length)]);
     _projectilePosition = null;
     _projectileVelocity = null;
   }
@@ -84,6 +92,9 @@ class _BubbleShooterGameState extends State<BubbleShooterGame>
     if (_projectilePosition != null && _projectileVelocity != null) {
       setState(() {
         _projectilePosition = _projectilePosition! + _projectileVelocity! * dt;
+        if (_shootEffectT > 0) {
+          _shootEffectT = (_shootEffectT - dt * 3).clamp(0.0, 1.0);
+        }
         // Left wall at fieldOffsetX
         if (_projectilePosition!.dx - bubbleRadius <= _fieldOffsetX &&
             _projectileVelocity!.dx < 0) {
@@ -116,6 +127,7 @@ class _BubbleShooterGameState extends State<BubbleShooterGame>
         if (_projectilePosition!.dy > gridRows * cellSize + 100) {
           _projectilePosition = null;
           _projectileVelocity = null;
+          _projectileBubble = null;
           _consumeActiveAndPrepareNext();
         }
       });
@@ -148,18 +160,22 @@ class _BubbleShooterGameState extends State<BubbleShooterGame>
         row++;
       }
       if (row < gridRows) {
-        setState(() => grid[row][col] = activeBubble);
+        setState(() => grid[row][col] = _projectileBubble);
+        context.read<GameCubit>().placeBubble(row, col, _projectileBubble!.color);
         _lastPlacedCell = <int>[row, col];
       }
     } else {
       candidates.sort((a, b) => a.dist.compareTo(b.dist));
       setState(() {
-        grid[candidates.first.row][candidates.first.col] = activeBubble;
+        grid[candidates.first.row][candidates.first.col] = _projectileBubble;
+        context.read<GameCubit>().placeBubble(
+            candidates.first.row, candidates.first.col, _projectileBubble!.color);
         _lastPlacedCell = <int>[candidates.first.row, candidates.first.col];
       });
     }
     _projectilePosition = null;
     _projectileVelocity = null;
+    _projectileBubble = null;
     _afterPlaceProcess();
   }
 
@@ -180,7 +196,8 @@ class _BubbleShooterGameState extends State<BubbleShooterGame>
       final int r = hitRow - 1;
       final int c = hitCol;
       if (r >= 0 && grid[r][c] == null) {
-        setState(() => grid[r][c] = activeBubble);
+        setState(() => grid[r][c] = _projectileBubble);
+        context.read<GameCubit>().placeBubble(r, c, _projectileBubble!.color);
         _lastPlacedCell = <int>[r, c];
       } else {
         _snapProjectileToGrid();
@@ -189,12 +206,15 @@ class _BubbleShooterGameState extends State<BubbleShooterGame>
     } else {
       candidates.sort((a, b) => a.dist.compareTo(b.dist));
       setState(() {
-        grid[candidates.first.row][candidates.first.col] = activeBubble;
+        grid[candidates.first.row][candidates.first.col] = _projectileBubble;
+        context.read<GameCubit>().placeBubble(
+            candidates.first.row, candidates.first.col, _projectileBubble!.color);
         _lastPlacedCell = <int>[candidates.first.row, candidates.first.col];
       });
     }
     _projectilePosition = null;
     _projectileVelocity = null;
+    _projectileBubble = null;
     _afterPlaceProcess();
   }
 
@@ -228,6 +248,7 @@ class _BubbleShooterGameState extends State<BubbleShooterGame>
           grid[p[0]][p[1]] = null;
         }
       });
+      context.read<GameCubit>().clearCells(cluster);
       _dropFloatingClusters();
     }
     _consumeActiveAndPrepareNext();
@@ -312,8 +333,7 @@ class _BubbleShooterGameState extends State<BubbleShooterGame>
         _lastKnownGridState[r][c] = grid[r][c] != null ? grid[r][c]!.copy() : null;
       }
     }
-    activeBubble = _nextBubble;
-    _nextBubble = Bubble(color: palette[_rand.nextInt(palette.length)]);
+    // Do NOT shift active/next here. We already shifted when firing.
   }
 
   void _onPanUpdate(DragUpdateDetails details, BoxConstraints constraints) {
@@ -339,7 +359,15 @@ class _BubbleShooterGameState extends State<BubbleShooterGame>
     setState(() {
       _projectilePosition = center;
       _projectileVelocity = Offset(vx, vy);
+      _projectileBubble = activeBubble;
+      // shift via cubit to maintain single source of truth
+      context.read<GameCubit>().onShootConsumedShift();
+      final GameState gs = context.read<GameCubit>().state;
+      activeBubble = gs.active != null ? Bubble(color: gs.active!) : null;
+      _nextBubble = gs.next != null ? Bubble(color: gs.next!) : null;
+      _shootEffectT = 1.0;
     });
+    SystemSound.play(SystemSoundType.click);
   }
 
   void _onTapDownSetAim(TapDownDetails details, BoxConstraints constraints) {
@@ -373,12 +401,15 @@ class _BubbleShooterGameState extends State<BubbleShooterGame>
                 bubbleRadius: bubbleRadius,
                 gridCellCenter: _gridCellCenter,
                 projectilePos: _projectilePosition,
-                projectileBubble: activeBubble,
+                projectileBubble: _projectileBubble,
                 shooterPos: _shooterPosition,
                 aimAngle: _aimAngle,
                 nextBubble: _nextBubble,
                 fieldOffsetX: _fieldOffsetX,
                 fieldWidth: _fieldWidth,
+                activeBubble: activeBubble,
+                shootEffectT: _shootEffectT,
+                popEffects: const <_PopEffect>[],
               ),
             ),
             Positioned(
@@ -435,6 +466,9 @@ class _GamePainter extends CustomPainter {
   final Bubble? nextBubble;
   final double fieldOffsetX;
   final double fieldWidth;
+  final Bubble? activeBubble;
+  final double shootEffectT;
+  final List<_PopEffect> popEffects;
 
   _GamePainter({
     required this.grid,
@@ -448,6 +482,9 @@ class _GamePainter extends CustomPainter {
     required this.nextBubble,
     required this.fieldOffsetX,
     required this.fieldWidth,
+    required this.activeBubble,
+    required this.shootEffectT,
+    required this.popEffects,
   });
 
   @override
@@ -506,13 +543,19 @@ class _GamePainter extends CustomPainter {
         RRect.fromRectAndRadius(rightPillar, const Radius.circular(6)),
         pillarEdge);
 
-    if (projectileBubble != null) {
-      _drawBubble(
-        canvas,
-        shooterPos + const Offset(0, -60),
-        projectileBubble!.color,
-        scale: 0.9,
-      );
+    if (activeBubble != null) {
+      _drawBubble(canvas, shooterPos + const Offset(0, -60), activeBubble!.color,
+          scale: 0.9);
+    }
+
+    // Pop effects
+    for (final _PopEffect e in popEffects) {
+      final double rr = bubbleRadius * (1 + (1 - e.t) * 0.8);
+      final Paint ring = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2 * e.t
+        ..color = Colors.white.withOpacity(0.7 * e.t);
+      canvas.drawCircle(e.center, rr, ring);
     }
   }
 
@@ -547,6 +590,15 @@ class _CellDist {
   final int col;
   final double dist;
   _CellDist(this.row, this.col, this.dist);
+}
+
+class _PopEffect {
+  final Offset center;
+  final double t; // 1 -> 0
+  const _PopEffect({required this.center, required this.t});
+
+  _PopEffect decayed(double dt) =>
+      _PopEffect(center: center, t: (t - dt).clamp(0.0, 1.0));
 }
 
 
