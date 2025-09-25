@@ -1,3 +1,4 @@
+import 'package:dino_hatch/features/sanctuary/detail/dino_detail.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -5,6 +6,7 @@ import 'package:dino_hatch/features/splash/splash_screen.dart';
 import 'package:dino_hatch/features/home/home_screen.dart';
 import 'package:dino_hatch/features/dna_map/dna_map_screen.dart';
 import 'package:dino_hatch/features/game/game_screen.dart';
+import 'package:dino_hatch/features/sanctuary/sanctuary_screen.dart';
 
 /// Central route paths.
 class Routes {
@@ -12,6 +14,7 @@ class Routes {
   static const String home = '/home';
   static const String dnaMap = '/dna-map';
   static const String game = '/game/:era/:level';
+  static const String sanctuary = '/sanctuary';
 }
 
 /// Global router configuration.
@@ -41,6 +44,11 @@ final GoRouter appRouter = GoRouter(
             int.tryParse(state.pathParameters['level'] ?? '1') ?? 1;
         return GameScreen(era: era, level: level);
       },
+    ),
+    GoRoute(
+      path: Routes.sanctuary,
+      builder: (BuildContext context, GoRouterState state) =>
+          const SanctuaryScreen(),
     ),
   ],
 );

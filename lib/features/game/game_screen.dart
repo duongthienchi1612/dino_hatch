@@ -17,12 +17,12 @@ class GameScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider<GameCubit>(
       create: (_) => GameCubit(rows: 12, cols: 9, palette: const <Color>[
-        Colors.red,
-        Colors.green,
-        Colors.blue,
-        Colors.orange,
-        Colors.purple,
-        Colors.yellow,
+        Color(0xFFE53935),
+        Color(0xFF43A047),
+        Color(0xFF1E88E5),
+        Color(0xFFFB8C00),
+        Color(0xFF8E24AA),
+        Color(0xFFFDD835),
       ]),
       child: Scaffold(
         appBar: AppBar(

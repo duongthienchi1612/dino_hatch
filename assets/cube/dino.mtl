@@ -1,0 +1,24 @@
+# Blender 4.5.3 LTS MTL File: 'test.blend'
+# www.blender.org
+
+newmtl Body_Mat
+Ns 31.425623
+Ka 0.336364 0.336364 0.336364
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 3
+map_Kd Raptor_PatternA_Albedo1K.png
+map_Bump -bm 2.000000 Raptor_Normal.png
+
+newmtl Other_Mat
+Ns 699.504089
+Ka 0.554545 0.554545 0.554545
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 3
+map_Kd Other_Albedo.png
+map_Bump -bm 1.000000 Other_Normal.png

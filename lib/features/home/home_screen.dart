@@ -33,7 +33,7 @@ class HomeScreen extends StatelessWidget {
                 title: 'Khu bảo tồn',
                 icon: Icons.forest,
                 color: Colors.green,
-                onTap: () => _comingSoon(context),
+                onTap: () => context.go(Routes.sanctuary),
               ),
             ],
           ),

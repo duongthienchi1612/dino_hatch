@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
@@ -12,12 +13,21 @@ const int gridRows = 12;
 const double cellSize = 40.0;
 const double bubbleRadius = cellSize * 0.5;
 const List<Color> palette = <Color>[
-  Colors.red,
-  Colors.green,
-  Colors.blue,
-  Colors.orange,
-  Colors.purple,
-  Colors.yellow,
+  Color(0xFFE53935), // placeholders mapping for color-index
+  Color(0xFF43A047),
+  Color(0xFF1E88E5),
+  Color(0xFFFB8C00),
+  Color(0xFF8E24AA),
+  Color(0xFFFDD835),
+];
+
+const List<String> eggAssets = <String>[
+  'assets/eggs/egg_1.png',
+  'assets/eggs/egg_2.png',
+  'assets/eggs/egg_3.png',
+  'assets/eggs/egg_4.png',
+  'assets/eggs/egg_5.png',
+  'assets/eggs/egg_6.png',
 ];
 
 class BubbleShooterGame extends StatefulWidget {
@@ -39,6 +49,7 @@ class _BubbleShooterGameState extends State<BubbleShooterGame>
   Bubble? _projectileBubble;
   Bubble? _nextBubble;
   late Ticker _ticker;
+  List<ui.Image>? _eggImages;
 
   // Centered playfield dimensions and offset
   late double _fieldWidth;
@@ -58,6 +69,7 @@ class _BubbleShooterGameState extends State<BubbleShooterGame>
     _initGrid();
     _spawnNewBubbles();
     _ticker = createTicker(_onTick)..start();
+    _loadEggImages();
   }
 
   @override
@@ -85,6 +97,24 @@ class _BubbleShooterGameState extends State<BubbleShooterGame>
     _nextBubble = gs.next != null ? Bubble(color: gs.next!) : Bubble(color: palette[_rand.nextInt(palette.length)]);
     _projectilePosition = null;
     _projectileVelocity = null;
+  }
+
+  Future<void> _loadEggImages() async {
+    final List<ui.Image> imgs = <ui.Image>[];
+    for (final String path in eggAssets) {
+      try {
+        final ByteData data = await rootBundle.load(path);
+        final ui.Codec codec =
+            await ui.instantiateImageCodec(data.buffer.asUint8List());
+        final ui.FrameInfo fi = await codec.getNextFrame();
+        imgs.add(fi.image);
+      } catch (_) {
+        // ignore; fallback painter will draw circles
+      }
+    }
+    if (mounted) {
+      setState(() => _eggImages = imgs);
+    }
   }
 
   void _onTick(Duration elapsed) {
@@ -410,6 +440,7 @@ class _BubbleShooterGameState extends State<BubbleShooterGame>
                 activeBubble: activeBubble,
                 shootEffectT: _shootEffectT,
                 popEffects: const <_PopEffect>[],
+                eggImages: _eggImages,
               ),
             ),
             Positioned(
@@ -446,11 +477,32 @@ class _BubbleShooterGameState extends State<BubbleShooterGame>
 
   Widget _bubbleIcon(Bubble? b) {
     if (b == null) return const SizedBox(width: 40, height: 40);
-    return Container(
+    final String asset = _assetForColor(b.color);
+    return SizedBox(
       width: 40,
       height: 40,
-      decoration: BoxDecoration(shape: BoxShape.circle, color: b.color),
+      child: Image.asset(
+        asset,
+        fit: BoxFit.contain,
+        errorBuilder: (BuildContext context, Object error, StackTrace? stack) {
+          return Container(
+            decoration: BoxDecoration(shape: BoxShape.circle, color: b.color),
+          );
+        },
+      ),
     );
+  }
+
+  String _assetForColor(Color color) {
+    final int idx = _indexForColor(color);
+    return eggAssets[idx];
+  }
+
+  int _indexForColor(Color color) {
+    for (int i = 0; i < palette.length; i++) {
+      if (palette[i].value == color.value) return i;
+    }
+    return 0;
   }
 }
 
@@ -469,6 +521,7 @@ class _GamePainter extends CustomPainter {
   final Bubble? activeBubble;
   final double shootEffectT;
   final List<_PopEffect> popEffects;
+  final List<ui.Image>? eggImages;
 
   _GamePainter({
     required this.grid,
@@ -485,6 +538,7 @@ class _GamePainter extends CustomPainter {
     required this.activeBubble,
     required this.shootEffectT,
     required this.popEffects,
+    required this.eggImages,
   });
 
   @override
@@ -561,17 +615,39 @@ class _GamePainter extends CustomPainter {
 
   void _drawBubble(Canvas canvas, Offset center, Color color,
       {double scale = 1.0}) {
+    final int idx = _paletteIndex(color);
+    final double size = bubbleRadius * 2 * scale;
+    if (eggImages != null && eggImages!.length >= idx + 1) {
+      final ui.Image img = eggImages![idx];
+      final Rect dst = Rect.fromCenter(center: center, width: size, height: size);
+      final Paint p = Paint();
+      canvas.drawImageRect(
+        img,
+        Rect.fromLTWH(0, 0, img.width.toDouble(), img.height.toDouble()),
+        dst,
+        p,
+      );
+      return;
+    }
+    // Fallback circle if images not yet loaded
     final double r = bubbleRadius * scale;
-    final Paint p = Paint()
+    final Paint fallback = Paint()
       ..shader = RadialGradient(
         colors: <Color>[color.withOpacity(0.95), color.withOpacity(0.7)],
       ).createShader(Rect.fromCircle(center: center, radius: r));
-    canvas.drawCircle(center, r, p);
+    canvas.drawCircle(center, r, fallback);
     final Paint edge = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1
       ..color = Colors.black26;
     canvas.drawCircle(center, r, edge);
+  }
+
+  int _paletteIndex(Color color) {
+    for (int i = 0; i < palette.length; i++) {
+      if (palette[i].value == color.value) return i;
+    }
+    return 0;
   }
 
   @override
