@@ -30,6 +30,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -41,6 +43,16 @@ dependencies:
   flutter_bloc: ^9.1.1
   equatable: ^2.0.7
   flame: ^1.32.0
+  json_annotation: ^4.9.0
+  uuid: ^4.5.1
+  global_configuration: ^2.0.0
+  intl: ^0.20.2
+  flutter_launcher_icons: ^0.14.4
+  window_manager: ^0.5.1
+  shared_preferences: ^2.5.3
+  permission_handler: ^12.0.1
+  get_it: ^8.2.0
+  basic_utils: ^5.8.2
 
 dev_dependencies:
   flutter_test:
@@ -52,12 +64,15 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^5.0.0
+  build_runner: ^2.8.0
+  json_serializable: ^6.11.1
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 
 # The following section is specific to Flutter packages.
 flutter:
+  generate: true
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
@@ -66,6 +81,8 @@ flutter:
 
   # To add assets to your application, add an assets section, like this:
   assets:
+    - assets/database/
+    - assets/cfg/
     - assets/cube/
     - assets/eggs/
     - assets/sprites/alanqa/
@@ -99,3 +116,8 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+flutter_gen:
+  l10n:
+    arb-dir: lib/l10n
+    template-arb-file: app_en.arb
+    output-localization-file: app_localizations.dart

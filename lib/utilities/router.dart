@@ -1,12 +1,10 @@
-import 'package:dino_hatch/features/sanctuary/detail/dino_detail.dart';
-import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
-
-import 'package:dino_hatch/features/splash/splash_screen.dart';
-import 'package:dino_hatch/features/home/home_screen.dart';
 import 'package:dino_hatch/features/dna_map/dna_map_screen.dart';
 import 'package:dino_hatch/features/game/game_screen.dart';
+import 'package:dino_hatch/features/home/home_screen.dart';
 import 'package:dino_hatch/features/sanctuary/sanctuary_screen.dart';
+import 'package:dino_hatch/features/splash/splash_screen.dart';
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 /// Central route paths.
 class Routes {

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:dino_hatch/app/router.dart';
+import 'package:dino_hatch/utilities/router.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});

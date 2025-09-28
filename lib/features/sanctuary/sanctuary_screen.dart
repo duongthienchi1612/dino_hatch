@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:go_router/go_router.dart';
 import 'dart:convert';
-import 'package:dino_hatch/app/router.dart';
+import 'package:dino_hatch/utilities/router.dart';
 import 'sanctuary_game.dart';
 
 class SanctuaryScreen extends StatelessWidget {

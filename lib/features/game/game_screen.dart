@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:dino_hatch/app/router.dart';
+import 'package:dino_hatch/utilities/router.dart';
 import 'package:dino_hatch/features/game/bubble_shooter/bubble_shooter.dart';
 import 'package:dino_hatch/features/game/bloc/game_cubit.dart';
 
