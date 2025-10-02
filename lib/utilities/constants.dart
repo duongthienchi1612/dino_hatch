@@ -9,8 +9,10 @@ class DatabaseTable {
   // masterdata table
   static const species = 'species';
   static const era = 'era';
+  static const level = 'level';
+  static const level_obstacles = 'level_obstacles';
   // user table
-  static const levels = 'levels';
+  static const user_levels = 'user_levels';
   static const eggs = 'eggs';
   static const dinosaur = 'dinosaur';
   static const sanctuary = 'sanctuary';

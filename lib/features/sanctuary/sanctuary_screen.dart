@@ -35,7 +35,7 @@ class SanctuaryScreen extends StatelessWidget {
                     final bundle = details.data;
                     final isFly = bundle.frames.first.contains('/fly_');
                     // Convert global drop offset to local coordinates of this DragTarget
-                    final RenderBox box = context.findRenderObject() as RenderBox;
+                    final RenderBox box = context.findRenderObject()! as RenderBox;
                     final Offset local = box.globalToLocal(details.offset);
                     final Vector2 pos = Vector2(local.dx, local.dy);
                     await game.spawnFromFrames(bundle.frames, isFly, pos);
@@ -63,8 +63,8 @@ class SanctuaryScreen extends StatelessWidget {
     final String raw = await rootBundle.loadString('AssetManifest.json');
     if (raw.isEmpty) return <String, List<String>>{};
     final Map<String, dynamic> manifest = Map<String, dynamic>.from(
-        (await Future<Map<String, dynamic>>.value(
-            Map<String, dynamic>.from(jsonDecode(raw) as Map))));
+        await Future<Map<String, dynamic>>.value(
+            Map<String, dynamic>.from(jsonDecode(raw) as Map)));
     final Map<String, List<String>> byFolder = <String, List<String>>{};
     final RegExp kind = RegExp(r'\/(walk|walking|fly)_', caseSensitive: false);
     for (final String path in manifest.keys) {

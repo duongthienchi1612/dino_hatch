@@ -1,13 +1,13 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'level_entity.dart';
+part of 'user_level_entity.dart';
 
 // **************************************************************************
 // JsonSerializableGenerator
 // **************************************************************************
 
-LevelEntity _$LevelEntityFromJson(Map<String, dynamic> json) =>
-    LevelEntity(
+UserLevelEntity _$UserLevelEntityFromJson(Map<String, dynamic> json) =>
+    UserLevelEntity(
         world: (json['world'] as num?)?.toInt(),
         state: json['state'] as String?,
         star: (json['star'] as num?)?.toInt(),
@@ -21,7 +21,7 @@ LevelEntity _$LevelEntityFromJson(Map<String, dynamic> json) =>
           ? null
           : DateTime.parse(json['update_date'] as String);
 
-Map<String, dynamic> _$LevelEntityToJson(LevelEntity instance) =>
+Map<String, dynamic> _$UserLevelEntityToJson(UserLevelEntity instance) =>
     <String, dynamic>{
       'id': instance.id,
       'create_date': instance.createDate?.toIso8601String(),

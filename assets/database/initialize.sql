@@ -1,5 +1,4 @@
-
-CREATE TABLE IF NOT EXISTS levels (
+CREATE TABLE IF NOT EXISTS user_levels (
     id text,
     create_date text,
     update_date text,

@@ -66,7 +66,7 @@ class _Walker extends SpriteAnimationComponent with HasGameRef<SanctuaryGame>, T
     final int moveSign = faceRightByDefault ? facing : -facing;
     position.x += speed * moveSign * dt;
     // bounce within viewport
-    final double left = 16;
+    const double left = 16;
     final double right = (gameRef.size.x - 16).clamp(100, double.infinity);
     if (position.x > right && ((faceRightByDefault && scale.x > 0) || (!faceRightByDefault && scale.x < 0))) {
       position.x = right;

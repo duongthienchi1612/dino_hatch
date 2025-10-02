@@ -44,8 +44,9 @@ class _SplashScreenState extends State<SplashScreen> {
     if (isAllGranted) {
       final appConfig = injector.get<AppConfiguration>();
       await appConfig.init();
-      await injector.get<MasterDataBusiness>().init();
       await injector.get<DatabaseFactory>().initDatabase();
+      await injector.get<MasterDataBusiness>().init();
+
     } else {
       await openAppSettings();
       exit(0);

@@ -1,8 +1,10 @@
 import 'package:dino_hatch/model/entity/dinosaur_entity.dart';
 import 'package:dino_hatch/model/entity/egg_entity.dart';
-import 'package:dino_hatch/model/entity/level_entity.dart';
+import 'package:dino_hatch/model/entity/user_level_entity.dart';
 import 'package:dino_hatch/model/entity/sanctuary_entity.dart';
 import 'package:dino_hatch/model/master_data/era_entity.dart';
+import 'package:dino_hatch/model/master_data/level_entity.dart';
+import 'package:dino_hatch/model/master_data/level_obstacles_entity.dart';
 import 'package:dino_hatch/model/master_data/species_entity.dart';
 import 'package:get_it/get_it.dart';
 
@@ -12,9 +14,11 @@ class ModelDependencies {
     // master data
     injector.registerFactory<SpeciesEntity>(() => SpeciesEntity());
     injector.registerFactory<EraEntity>(() => EraEntity());
+    injector.registerFactory<LevelEntity>(() => LevelEntity());
+    injector.registerFactory<LevelObstaclesEntity>(() => LevelObstaclesEntity());
 
     // user data 
-    injector.registerFactory<LevelEntity>(() => LevelEntity());
+    injector.registerFactory<UserLevelEntity>(() => UserLevelEntity());
     injector.registerFactory<EggEntity>(() => EggEntity());
     injector.registerFactory<DinosaurEntity>(() => DinosaurEntity());
     injector.registerFactory<SanctuaryEntity>(() => SanctuaryEntity());

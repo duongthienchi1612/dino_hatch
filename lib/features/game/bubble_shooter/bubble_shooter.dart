@@ -30,8 +30,19 @@ const List<String> eggAssets = <String>[
   'assets/eggs/egg_6.png',
 ];
 
+enum LevelWinMode { clearAll, dropObstacles }
+
+class LevelConfig {
+  final LevelWinMode winMode;
+  final int obstacleCount;
+  final List<Point<int>>? obstacles;
+  const LevelConfig({this.winMode = LevelWinMode.clearAll, this.obstacleCount = 0, this.obstacles});
+}
+
 class BubbleShooterGame extends StatefulWidget {
-  const BubbleShooterGame({super.key});
+  final LevelConfig config;
+  final VoidCallback? onWin;
+  const BubbleShooterGame({super.key, this.config = const LevelConfig(), this.onWin});
 
   @override
   State<BubbleShooterGame> createState() => _BubbleShooterGameState();
@@ -50,6 +61,8 @@ class _BubbleShooterGameState extends State<BubbleShooterGame>
   Bubble? _nextBubble;
   late Ticker _ticker;
   List<ui.Image>? _eggImages;
+  final Set<Point<int>> _obstacles = <Point<int>>{};
+  bool _won = false;
 
   // Centered playfield dimensions and offset
   late double _fieldWidth;
@@ -86,6 +99,23 @@ class _BubbleShooterGameState extends State<BubbleShooterGame>
     for (int r = 0; r < 5; r++) {
       for (int c = 0; c < gridCols; c++) {
         grid[r][c] = Bubble(color: palette[_rand.nextInt(palette.length)]);
+      }
+    }
+    if (widget.config.obstacles != null && widget.config.obstacles!.isNotEmpty) {
+      _obstacles.addAll(widget.config.obstacles!);
+    } else if (widget.config.winMode == LevelWinMode.dropObstacles && widget.config.obstacleCount > 0) {
+      final List<Point<int>> candidates = <Point<int>>[
+        Point<int>(6, (gridCols / 2).floor()),
+        Point<int>(7, (gridCols / 2).floor() - 2),
+        Point<int>(7, (gridCols / 2).floor() + 2),
+      ];
+      int placed = 0;
+      for (final Point<int> p in candidates) {
+        if (placed >= widget.config.obstacleCount) break;
+        if (p.x >= 0 && p.y >= 0 && p.x < gridRows && p.y < gridCols) {
+          _obstacles.add(p);
+          placed++;
+        }
       }
     }
   }
@@ -144,8 +174,7 @@ class _BubbleShooterGameState extends State<BubbleShooterGame>
         }
         for (int r = 0; r < gridRows; r++) {
           for (int c = 0; c < gridCols; c++) {
-            final Bubble? b = grid[r][c];
-            if (b == null) continue;
+            if (!_isCellOccupied(r, c)) continue;
             final Offset center = _gridCellCenter(r, c);
             final double dist = (_projectilePosition! - center).distance;
             if (dist <= bubbleRadius * 2 - 2) {
@@ -186,7 +215,7 @@ class _BubbleShooterGameState extends State<BubbleShooterGame>
       final double localX = _projectilePosition!.dx - _fieldOffsetX;
       final int col = (localX ~/ cellSize).clamp(0, gridCols - 1);
       int row = 0;
-      while (row < gridRows && grid[row][col] != null) {
+      while (row < gridRows && _isCellOccupied(row, col)) {
         row++;
       }
       if (row < gridRows) {
@@ -225,7 +254,7 @@ class _BubbleShooterGameState extends State<BubbleShooterGame>
     if (candidates.isEmpty) {
       final int r = hitRow - 1;
       final int c = hitCol;
-      if (r >= 0 && grid[r][c] == null) {
+      if (r >= 0 && !_isCellOccupied(r, c)) {
         setState(() => grid[r][c] = _projectileBubble);
         context.read<GameCubit>().placeBubble(r, c, _projectileBubble!.color);
         _lastPlacedCell = <int>[r, c];
@@ -322,7 +351,7 @@ class _BubbleShooterGameState extends State<BubbleShooterGame>
         gridRows, (int _) => List<bool>.generate(gridCols, (int __) => false));
     final List<List<int>> stack = <List<int>>[];
     for (int c = 0; c < gridCols; c++) {
-      if (grid[0][c] != null) {
+      if (_isCellOccupied(0, c)) {
         visited[0][c] = true;
         stack.add(<int>[0, c]);
       }
@@ -334,27 +363,39 @@ class _BubbleShooterGameState extends State<BubbleShooterGame>
         final int nc = n[1];
         if (nr < 0 || nc < 0 || nr >= gridRows || nc >= gridCols) continue;
         if (visited[nr][nc]) continue;
-        if (grid[nr][nc] != null) {
+        if (_isCellOccupied(nr, nc)) {
           visited[nr][nc] = true;
           stack.add(<int>[nr, nc]);
         }
       }
     }
     final List<List<int>> toRemove = <List<int>>[];
+    final List<Point<int>> droppedObstacles = <Point<int>>[];
     for (int r = 0; r < gridRows; r++) {
       for (int c = 0; c < gridCols; c++) {
-        if (grid[r][c] != null && !visited[r][c]) {
-          toRemove.add(<int>[r, c]);
+        if (!_isCellOccupied(r, c)) continue;
+        if (!visited[r][c]) {
+          if (grid[r][c] != null) {
+            toRemove.add(<int>[r, c]);
+          }
+          final Point<int> p = Point<int>(r, c);
+          if (_obstacles.contains(p)) {
+            droppedObstacles.add(p);
+          }
         }
       }
     }
-    if (toRemove.isNotEmpty) {
+    if (toRemove.isNotEmpty || droppedObstacles.isNotEmpty) {
       setState(() {
         for (final List<int> p in toRemove) {
           grid[p[0]][p[1]] = null;
         }
+        for (final Point<int> p in droppedObstacles) {
+          _obstacles.remove(p);
+        }
       });
     }
+    _checkWin();
   }
 
   void _consumeActiveAndPrepareNext() {
@@ -364,6 +405,29 @@ class _BubbleShooterGameState extends State<BubbleShooterGame>
       }
     }
     // Do NOT shift active/next here. We already shifted when firing.
+  }
+
+  bool _isCellOccupied(int r, int c) {
+    if (grid[r][c] != null) return true;
+    return _obstacles.contains(Point<int>(r, c));
+  }
+
+  void _checkWin() {
+    if (_won) return;
+    if (widget.config.winMode == LevelWinMode.clearAll) {
+      for (int r = 0; r < gridRows; r++) {
+        for (int c = 0; c < gridCols; c++) {
+          if (grid[r][c] != null) return;
+        }
+      }
+      _won = true;
+      widget.onWin?.call();
+    } else {
+      if (_obstacles.isEmpty) {
+        _won = true;
+        widget.onWin?.call();
+      }
+    }
   }
 
   void _onPanUpdate(DragUpdateDetails details, BoxConstraints constraints) {
@@ -441,6 +505,7 @@ class _BubbleShooterGameState extends State<BubbleShooterGame>
                 shootEffectT: _shootEffectT,
                 popEffects: const <_PopEffect>[],
                 eggImages: _eggImages,
+                obstacles: _obstacles,
               ),
             ),
             Positioned(
@@ -522,6 +587,7 @@ class _GamePainter extends CustomPainter {
   final double shootEffectT;
   final List<_PopEffect> popEffects;
   final List<ui.Image>? eggImages;
+  final Set<Point<int>> obstacles;
 
   _GamePainter({
     required this.grid,
@@ -539,6 +605,7 @@ class _GamePainter extends CustomPainter {
     required this.shootEffectT,
     required this.popEffects,
     required this.eggImages,
+    required this.obstacles,
   });
 
   @override
@@ -554,6 +621,12 @@ class _GamePainter extends CustomPainter {
           _drawBubble(canvas, center, b.color);
         }
       }
+    }
+
+    // Draw obstacles
+    for (final Point<int> obstacle in obstacles) {
+      final Offset center = gridCellCenter(obstacle.x, obstacle.y);
+      _drawObstacle(canvas, center);
     }
 
     if (projectilePos != null && projectileBubble != null) {
@@ -641,6 +714,44 @@ class _GamePainter extends CustomPainter {
       ..strokeWidth = 1
       ..color = Colors.black26;
     canvas.drawCircle(center, r, edge);
+  }
+
+  void _drawObstacle(Canvas canvas, Offset center) {
+    final double size = bubbleRadius * 2;
+    final Rect rect = Rect.fromCenter(center: center, width: size, height: size);
+    
+    // Draw main obstacle body (dark gray)
+    final Paint obstaclePaint = Paint()..color = Colors.grey.shade700;
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(rect, const Radius.circular(8)),
+      obstaclePaint,
+    );
+    
+    // Draw border
+    final Paint borderPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2
+      ..color = Colors.grey.shade500;
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(rect, const Radius.circular(8)),
+      borderPaint,
+    );
+    
+    // Draw X pattern inside
+    final Paint xPaint = Paint()
+      ..strokeWidth = 3
+      ..color = Colors.grey.shade400;
+    final double margin = size * 0.25;
+    canvas.drawLine(
+      Offset(rect.left + margin, rect.top + margin),
+      Offset(rect.right - margin, rect.bottom - margin),
+      xPaint,
+    );
+    canvas.drawLine(
+      Offset(rect.right - margin, rect.top + margin),
+      Offset(rect.left + margin, rect.bottom - margin),
+      xPaint,
+    );
   }
 
   int _paletteIndex(Color color) {

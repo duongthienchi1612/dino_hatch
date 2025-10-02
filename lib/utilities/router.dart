@@ -40,7 +40,7 @@ final GoRouter appRouter = GoRouter(
         final String era = state.pathParameters['era']!;
         final int level =
             int.tryParse(state.pathParameters['level'] ?? '1') ?? 1;
-        return GameScreen(era: era, level: level);
+        return GameScreen(eraName: era, levelId: level);
       },
     ),
     GoRoute(
