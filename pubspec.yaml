@@ -85,6 +85,7 @@ flutter:
     - assets/cfg/
     - assets/cube/
     - assets/eggs/
+    - assets/images/
     - assets/sprites/alanqa/
     - assets/sprites/baryonyx/
     - assets/sprites/carnotaurus/

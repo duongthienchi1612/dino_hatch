@@ -53,41 +53,41 @@ class _SplashScreenState extends State<SplashScreen> {
     }
   }
 
+    Future<void> timeSplashScreen() async {
+    await Future.wait(
+      [_initializeDependencies(), Future.delayed(const Duration(milliseconds: 1800))],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder(
-      future: _initializeDependencies(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) { 
-                  return Scaffold(
-          body: Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFF0B1020), Color(0xFF1B2A4B)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+    return Scaffold(
+      body: FutureBuilder(
+        future: timeSplashScreen(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) { 
+                    return Scaffold(
+            body: Container(
+              decoration: BoxDecoration(
+                image: DecorationImage(image: AssetImage('assets/images/splash_background.png'), fit: BoxFit.cover),
+              ),
+              child: Center(
+                child: Image.asset(
+                  'assets/images/splash_logo.png',
+                  width: 300,
+                ),
               ),
             ),
-            child: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: const <Widget>[
-                  Icon(Icons.egg, size: 96, color: Colors.amber),
-                  SizedBox(height: 16),
-                  Text('Dino Hatch', style: TextStyle(fontSize: 28)),
-                ],
-              ),
-            ),
-          ),
-        );
-        } else {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              context.go(Routes.home);
-            });
+          );
+          } else {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                context.go(Routes.home);
+              });
+          }
+          return Container();
+      
         }
-        return Container();
-
-      }
+      ),
     );
   }
 }

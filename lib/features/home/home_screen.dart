@@ -1,97 +1,113 @@
+import 'package:dino_hatch/utilities/router.dart';
+import 'package:flame/components.dart';
+import 'package:flame/events.dart';
+import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:dino_hatch/utilities/router.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Dino Hatch – Home')),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 900),
-          child: Wrap(
-            spacing: 24,
-            runSpacing: 24,
-            alignment: WrapAlignment.center,
-            children: <Widget>[
-              _HomeCard(
-                title: 'Thu thập DNA',
-                icon: Icons.biotech,
-                color: Colors.teal,
-                onTap: () => context.go(Routes.dnaMap),
-              ),
-              _HomeCard(
-                title: 'Khu nghiên cứu',
-                icon: Icons.science,
-                color: Colors.indigo,
-                onTap: () => _comingSoon(context),
-              ),
-              _HomeCard(
-                title: 'Khu bảo tồn',
-                icon: Icons.forest,
-                color: Colors.green,
-                onTap: () => context.go(Routes.sanctuary),
-              ),
-            ],
-          ),
-        ),
+    return Scaffold(body: GameWidget(game: HomeGame(context)));
+  }
+}
+
+class HomeGame extends FlameGame with TapCallbacks {
+  final BuildContext context;
+
+  HomeGame(this.context);
+
+  @override
+  Future<void> onLoad() async {
+    await super.onLoad();
+
+    // Background
+    final background = SpriteComponent()
+      ..sprite = await loadSprite('home_background.png')
+      ..size = size
+      ..position = Vector2.zero()
+      ..anchor = Anchor.topLeft;
+    add(background);
+
+    final w = size.x;
+    final h = size.y;
+
+    // Challenge button (DNA Map)
+    add(
+      ShapeButtonComponent.circle(
+        position: Vector2(w * 0.50, h * 0.27),
+        radius: w * 0.115,
+        onTap: () => context.go(Routes.dnaMap),
+      ),
+    );
+
+    // Hatchery button
+    add(
+      ShapeButtonComponent.ellipse(
+        position: Vector2(w * 0.295, h * 0.7),
+        widthRadius: w * 0.115,
+        heightRadius: h * 0.17,
+        onTap: () => _comingSoon(context),
+      ),
+    );
+
+    // Sanctuary button
+    add(
+      ShapeButtonComponent.ellipse(
+        position: Vector2(w * 0.705, h * 0.70),
+        widthRadius: w * 0.12,
+        heightRadius: h * 0.17,
+        onTap: () => context.go(Routes.sanctuary),
       ),
     );
   }
 
   void _comingSoon(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Sắp ra mắt!')),
-    );
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Sắp ra mắt!')));
   }
 }
 
-class _HomeCard extends StatelessWidget {
-  final String title;
-  final IconData icon;
-  final Color color;
+class ShapeButtonComponent extends PositionComponent with TapCallbacks, HasGameRef<HomeGame> {
+  final double widthRadius;
+  final double heightRadius;
   final VoidCallback onTap;
 
-  const _HomeCard({
-    required this.title,
-    required this.icon,
-    required this.color,
+  ShapeButtonComponent.circle({required Vector2 position, required double radius, required this.onTap})
+    : widthRadius = radius,
+      heightRadius = radius {
+    this.position = position;
+    size = Vector2.all(radius * 2);
+    anchor = Anchor.center;
+  }
+
+  ShapeButtonComponent.ellipse({
+    required Vector2 position,
+    required this.widthRadius,
+    required this.heightRadius,
     required this.onTap,
-  });
+  }) {
+    this.position = position;
+    size = Vector2(widthRadius * 2, heightRadius * 2);
+    anchor = Anchor.center;
+  }
 
   @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        width: 260,
-        height: 160,
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.15),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withOpacity(0.5)),
-          boxShadow: <BoxShadow>[
-            BoxShadow(
-              color: color.withOpacity(0.25),
-              blurRadius: 16,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            Icon(icon, size: 48, color: color),
-            const SizedBox(height: 12),
-            Text(title, style: const TextStyle(fontSize: 18)),
-          ],
-        ),
-      ),
-    );
+  bool onTapDown(TapDownEvent event) {
+    final p = event.localPosition;
+    final cx = size.x / 2;
+    final cy = size.y / 2;
+    final dx = p.x - cx;
+    final dy = p.y - cy;
+    final normalized = (dx * dx) / (widthRadius * widthRadius) + (dy * dy) / (heightRadius * heightRadius);
+    if (normalized <= 1) onTap();
+    return true;
+  }
+
+  @override
+  void render(Canvas canvas) {
+    // final paint = Paint()..color = Colors.red.withOpacity(0.3);
+    // canvas.drawOval(Rect.fromLTWH(0, 0, size.x, size.y), paint);
   }
 }
-
-
